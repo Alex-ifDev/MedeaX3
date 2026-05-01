@@ -60,10 +60,9 @@ def parse_rss():
     
     try:
         response = scraper.get(RSS_URL, timeout=20)
-        if response.status_code != 200:
-            return {}
-
         content = response.text
+        print(f"DEBUG: Отримано тексту: {len(content)} символів")
+        print(f"DEBUG: Початок тексту: {content[:200]}") # Це покаже, чи там XML, чи помилка Cloudflare
         bosses = {}
 
         # 1. Шукаємо всі посилання, які містять дату та ім'я боса
