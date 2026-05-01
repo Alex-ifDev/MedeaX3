@@ -1,0 +1,6 @@
+aiogram
+requests
+cloudscraper
+beautifulsoup4
+pillow
+aiohttp
