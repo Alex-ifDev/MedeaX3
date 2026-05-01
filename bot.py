@@ -12,7 +12,7 @@ from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
 from aiogram.types import FSInputFile
 
-TOKEN = "8716094991:AAEHEjbLhnl4z9rD0MTETd2yGjYPr8R7AqQ"
+TOKEN = os.getenv("BOT_TOKEN")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
