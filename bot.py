@@ -49,7 +49,7 @@ last_kills = {}
 
 def parse_rss():
     print("--- Пошук у HTML-таблиці (Asterios Mode) ---")
-    # Додаємо параметри браузера
+    # Налаштовуємо scraper з імітацією реального браузера для обходу захисту
     scraper = cloudscraper.create_scraper(
         browser={
             'browser': 'chrome',
@@ -59,45 +59,49 @@ def parse_rss():
     )
     
     try:
+        # Використовуємо RSS_URL (переконайтеся, що там filter=all для стабільності)
         response = scraper.get(RSS_URL, timeout=20)
+        if response.status_code != 200:
+            print(f"❌ Помилка сервера: {response.status_code}")
+            return {}
+
         content = response.text
         print(f"DEBUG: Отримано тексту: {len(content)} символів")
-        print(f"DEBUG: Початок тексту: {content[:200]}") # Це покаже, чи там XML, чи помилка Cloudflare
+        print(f"DEBUG: Початок тексту: {content[:200]}") 
+        
         bosses = {}
 
-        # 1. Шукаємо всі посилання, які містять дату та ім'я боса
-        # Оновлений патерн, який краще шукає в HTML-структурі RSS
-        pattern = r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*?Убит босс ([\w\s']+)"
+        # Оновлений патерн: шукає дату, ігнорує будь-який HTML-код (.*?) до фрази "Убит босс"
+        # re.DOTALL дозволяє шукати крізь переноси рядків, re.IGNORECASE ігнорує регістр букв
+        pattern = r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*?Убит босс\s+([\w\s']+)"
         
-        matches = re.findall(pattern, content, re.DOTALL)
-        print(f"Знайдено всього згадок у тексті: {len(matches)}")
+        matches = re.findall(pattern, content, re.DOTALL | re.IGNORECASE)
+        print(f"DEBUG: Знайдено всього згадок (matches): {len(matches)}")
 
         for date_str, boss_name in matches:
-            boss_name = boss_name.strip()
+            # Очищаємо ім'я боса від можливих HTML-тегів, якщо вони потрапили в захват[cite: 1]
+            clean_name = re.sub('<[^<]+?>', '', boss_name).strip()
             
-            # Перевіряємо, чи є цей бос у нашому списку BOSSES
+            # Перевіряємо відповідність нашому списку BOSSES[cite: 1]
             for target_boss in BOSSES:
-                if target_boss.lower() in boss_name.lower():
+                if target_boss.lower() in clean_name.lower():
                     try:
-                        # Формат: 2026-04-16 12:11:36
+                        # Конвертуємо рядок у об'єкт datetime[cite: 1]
                         dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
                         
-                        # Зберігаємо тільки найсвіжішу дату для кожного боса
+                        # Зберігаємо лише найсвіжіший час вбивства для кожного РБ[cite: 1]
                         if target_boss not in bosses or bosses[target_boss] < dt:
                             bosses[target_boss] = dt
                             print(f"✅ Знайдено: {target_boss} | Час: {dt}")
                     except Exception as e:
-                        print(f"Помилка дати для {boss_name}: {e}")
+                        print(f"⚠️ Помилка формату дати для {clean_name}: {e}")
 
-        print(f"Успішно оброблено: {len(bosses)} з {len(BOSSES)}")
+        print(f"📊 Успішно оброблено: {len(bosses)} з {len(BOSSES)}")
         return bosses
 
     except Exception as e:
-        print(f"Помилка парсингу: {e}")
+        print(f"❌ Критична помилка парсингу: {e}")
         return {}
-        
-        
-# Переконайтеся, що в функції build_message викликається саме parse_rss()
 
 
 async def auto_notify():
