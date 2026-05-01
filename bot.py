@@ -66,11 +66,11 @@ def parse_rss():
         bosses = {}
 
         # 1. Шукаємо всі посилання, які містять дату та ім'я боса
-        # Приклад з вашого тексту: 2026-04-16 12:11:36: Убит босс Kernon
-        pattern = r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}): Убит босс ([\w\s']+)"
+        # Оновлений патерн, який краще шукає в HTML-структурі RSS
+        pattern = r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*?Убит босс ([\w\s']+)"
         
-        matches = re.findall(pattern, content)
-        print(f"Знайдено всього босів у списку: {len(matches)}")
+        matches = re.findall(pattern, content, re.DOTALL)
+        print(f"Знайдено всього згадок у тексті: {len(matches)}")
 
         for date_str, boss_name in matches:
             boss_name = boss_name.strip()
