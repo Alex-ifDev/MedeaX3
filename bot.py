@@ -49,7 +49,14 @@ last_kills = {}
 
 def parse_rss():
     print("--- Пошук у HTML-таблиці (Asterios Mode) ---")
-    scraper = cloudscraper.create_scraper()
+    # Додаємо параметри браузера
+    scraper = cloudscraper.create_scraper(
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True
+        }
+    )
     
     try:
         response = scraper.get(RSS_URL, timeout=20)
