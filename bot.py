@@ -1,22 +1,30 @@
 import os
-import requests
-import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta
 import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import Message
-from aiogram.filters import Command
 import cloudscraper
 import re
+from datetime import datetime, timedelta
 from bs4 import BeautifulSoup
-from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
-from aiogram.types import FSInputFile
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import Message, FSInputFile
+from aiogram.filters import Command
 
-TOKEN = "8716094991:AAEHEjbLhnl4z9rD0MTETd2yGjYPr8R7AqQ"
+# --- ВИПРАВЛЕНИЙ БЛОК ТОКЕНА ---
+TOKEN = os.getenv("BOT_TOKEN")
+
+if TOKEN is None:
+    # Цей текст ти побачиш у логах Railway, якщо змінна не підтягнулася
+    print("❌ ERROR: Variable 'BOT_TOKEN' not found in Railway settings!")
+    # Щоб не падати з незрозумілою помилкою, поставимо "заглушку"
+    TOKEN = "12345678:invalid_dummy_token" 
+elif len(TOKEN) < 10:
+    print(f"❌ ERROR: 'BOT_TOKEN' is too short! Value: {TOKEN}")
+else:
+    print(f"✅ Token detected! Starts with: {TOKEN[:8]}...")
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
+# ------------------------------
 
 RSS_URL = "https://asterios.tm/index.php?cmd=rss&serv=6&filter=keyboss"
 
