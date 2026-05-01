@@ -26,7 +26,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 # ------------------------------
 
-RSS_URL = "https://asterios.tm/index.php?cmd=rss&serv=6&filter=keyboss"
+RSS_URL = "https://asterios.tm/index.php?cmd=rss&serv=6&filter=all"
 
 # Боси які цікавлять
 BOSSES = [
