@@ -7,6 +7,7 @@ from aiogram.types import Message
 from aiogram.filters import Command
 import cloudscraper
 import re
+import os
 from bs4 import BeautifulSoup
 from datetime import datetime
 from PIL import Image, ImageDraw, ImageFont
