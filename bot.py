@@ -48,41 +48,54 @@ last_kills = {}
 
 
 def parse_rss():
-    print("--- Спроба парсингу HTML (Asterios) ---")
+    print("--- Пошук у HTML-таблиці (Asterios Mode) ---")
+    # Додаємо конкретний браузер, щоб імітувати реальну людину
     scraper = cloudscraper.create_scraper(
-        browser={'browser': 'chrome', 'platform': 'windows', 'desktop': True}
+        browser={
+            'browser': 'chrome',
+            'platform': 'windows',
+            'desktop': True
+        }
     )
     
     try:
-        # Спробуйте змінити посилання на просте (без cmd=rss), якщо RSS видає звичайний HTML
-        url = "https://asterios.tm/index.php?cmd=rss&serv=6&filter=all"
-        response = scraper.get(url, timeout=20)
-        content = response.text
+        # Використовуємо filter=all, щоб отримати максимум даних
+        target_url = "https://asterios.tm/index.php?cmd=rss&serv=6&filter=all"
+        response = scraper.get(target_url, timeout=20)
         
+        if response.status_code != 200:
+            print(f"❌ Помилка сервера: {response.status_code}")
+            return {}
+
+        content = response.text
         bosses = {}
 
-        # 1. Спробуємо знайти всі блоки з часом (формат сайту: 2026-05-02 12:00:00)
-        # 2. Використовуємо дуже гнучкий пошук, що ігнорує будь-які HTML теги між датою і назвою
+        # Більш гнучкий патерн для пошуку в HTML-коді, який приходить на Railway
+        # Шукає дату, потім будь-який текст до фрази "Убит босс"
         pattern = r"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}).*?Убит босс\s+([\w\s']+)"
         
-        # Шукаємо всі співпадіння
         matches = re.findall(pattern, content, re.DOTALL | re.IGNORECASE)
-        print(f"DEBUG: Знайдено потенційних вбивств: {len(matches)}")
+        print(f"DEBUG: Знайдено потенційних записів: {len(matches)}")
 
-        for date_str, boss_raw in matches:
-            # Очищаємо ім'я від можливих залишків HTML тегів <td>, <b> тощо
-            clean_name = re.sub(r'<.*?>', '', boss_raw).strip()
+        for date_str, boss_name in matches:
+            # Очищуємо назву від залишків HTML-тегів
+            clean_name = re.sub('<[^<]+?>', '', boss_name).strip()
             
-            for target in BOSSES:
-                if target.lower() in clean_name.lower():
-                    dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-                    if target not in bosses or bosses[target] < dt:
-                        bosses[target] = dt
-                        print(f"✅ Знайдено: {target} ({dt})")
+            for target_boss in BOSSES:
+                if target_boss.lower() in clean_name.lower():
+                    try:
+                        dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                        if target_boss not in bosses or bosses[target_boss] < dt:
+                            bosses[target_boss] = dt
+                            print(f"✅ Знайдено: {target_boss} | Час: {dt}")
+                    except Exception as e:
+                        continue
 
+        print(f"Успішно оброблено: {len(bosses)} з {len(BOSSES)}")
         return bosses
+
     except Exception as e:
-        print(f"❌ Помилка: {e}")
+        print(f"Помилка парсингу: {e}")
         return {}
 
 
