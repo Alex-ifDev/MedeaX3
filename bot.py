@@ -48,64 +48,41 @@ last_kills = {}
 
 
 def parse_rss():
-    print("--- Пошук у HTML-таблиці (Asterios Mode) ---")
-    # Налаштовуємо scraper з імітацією реального браузера для обходу захисту
+    print("--- Спроба парсингу HTML (Asterios) ---")
     scraper = cloudscraper.create_scraper(
-        browser={
-            'browser': 'chrome',
-            'platform': 'windows',
-            'desktop': True
-        }
+        browser={'browser': 'chrome', 'platform': 'windows', 'desktop': True}
     )
-    # Додаємо реферер, щоб сайт думав, що ми перейшли з головної сторінки
-    headers = {
-        'Referer': 'https://asterios.tm/index.php?cmd=rss'
-    }
-    response = scraper.get(RSS_URL, headers=headers, timeout=20)
     
     try:
-        # Використовуємо RSS_URL (переконайтеся, що там filter=all для стабільності)
-        response = scraper.get(RSS_URL, timeout=20)
-        if response.status_code != 200:
-            print(f"❌ Помилка сервера: {response.status_code}")
-            return {}
-
+        # Спробуйте змінити посилання на просте (без cmd=rss), якщо RSS видає звичайний HTML
+        url = "https://asterios.tm/index.php?cmd=rss&serv=6&filter=all"
+        response = scraper.get(url, timeout=20)
         content = response.text
-        print(f"DEBUG: Отримано тексту: {len(content)} символів")
-        print(f"DEBUG: Початок тексту: {content[:200]}") 
         
         bosses = {}
 
-        # Спробуємо шукати дату і ім'я боса, ігноруючи будь-які символи та теги між ними
-        # Цей патерн шукає дату, потім будь-який текст, поки не знайде "Убит босс"
+        # 1. Спробуємо знайти всі блоки з часом (формат сайту: 2026-05-02 12:00:00)
+        # 2. Використовуємо дуже гнучкий пошук, що ігнорує будь-які HTML теги між датою і назвою
         pattern = r"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}).*?Убит босс\s+([\w\s']+)"
         
+        # Шукаємо всі співпадіння
         matches = re.findall(pattern, content, re.DOTALL | re.IGNORECASE)
-        print(f"DEBUG: Знайдено всього згадок (matches): {len(matches)}")
+        print(f"DEBUG: Знайдено потенційних вбивств: {len(matches)}")
 
-        for date_str, boss_name in matches:
-            # Очищаємо ім'я боса від можливих HTML-тегів, якщо вони потрапили в захват[cite: 1]
-            clean_name = re.sub('<[^<]+?>', '', boss_name).strip()
+        for date_str, boss_raw in matches:
+            # Очищаємо ім'я від можливих залишків HTML тегів <td>, <b> тощо
+            clean_name = re.sub(r'<.*?>', '', boss_raw).strip()
             
-            # Перевіряємо відповідність нашому списку BOSSES[cite: 1]
-            for target_boss in BOSSES:
-                if target_boss.lower() in clean_name.lower():
-                    try:
-                        # Конвертуємо рядок у об'єкт datetime[cite: 1]
-                        dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
-                        
-                        # Зберігаємо лише найсвіжіший час вбивства для кожного РБ[cite: 1]
-                        if target_boss not in bosses or bosses[target_boss] < dt:
-                            bosses[target_boss] = dt
-                            print(f"✅ Знайдено: {target_boss} | Час: {dt}")
-                    except Exception as e:
-                        print(f"⚠️ Помилка формату дати для {clean_name}: {e}")
+            for target in BOSSES:
+                if target.lower() in clean_name.lower():
+                    dt = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                    if target not in bosses or bosses[target] < dt:
+                        bosses[target] = dt
+                        print(f"✅ Знайдено: {target} ({dt})")
 
-        print(f"📊 Успішно оброблено: {len(bosses)} з {len(BOSSES)}")
         return bosses
-
     except Exception as e:
-        print(f"❌ Критична помилка парсингу: {e}")
+        print(f"❌ Помилка: {e}")
         return {}
 
 
