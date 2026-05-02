@@ -57,6 +57,11 @@ def parse_rss():
             'desktop': True
         }
     )
+    # Додаємо реферер, щоб сайт думав, що ми перейшли з головної сторінки
+    headers = {
+        'Referer': 'https://asterios.tm/index.php?cmd=rss'
+    }
+    response = scraper.get(RSS_URL, headers=headers, timeout=20)
     
     try:
         # Використовуємо RSS_URL (переконайтеся, що там filter=all для стабільності)
@@ -71,9 +76,9 @@ def parse_rss():
         
         bosses = {}
 
-        # Оновлений патерн: шукає дату, ігнорує будь-який HTML-код (.*?) до фрази "Убит босс"
-        # re.DOTALL дозволяє шукати крізь переноси рядків, re.IGNORECASE ігнорує регістр букв
-        pattern = r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}).*?Убит босс\s+([\w\s']+)"
+        # Спробуємо шукати дату і ім'я боса, ігноруючи будь-які символи та теги між ними
+        # Цей патерн шукає дату, потім будь-який текст, поки не знайде "Убит босс"
+        pattern = r"(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}).*?Убит босс\s+([\w\s']+)"
         
         matches = re.findall(pattern, content, re.DOTALL | re.IGNORECASE)
         print(f"DEBUG: Знайдено всього згадок (matches): {len(matches)}")
